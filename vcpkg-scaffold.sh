@@ -27,10 +27,36 @@ then
     git submodule add https://github.com/microsoft/vcpkg.git
 
     git submodule update --init --recursive
+
+    if [ -e ".gitignore" ];
+    then
+        echo "Updating .gitignore"
+    else
+        echo "Creating .gitignore"
+        touch .gitignore
+    fi
+
+    if ! grep -q "vcpkg/" .gitignore; then
+        echo "vcpkg/" >> .gitignore
+    fi
+
+    if ! grep -q "vcpkg_installed/" .gitignore; then
+        echo "vcpkg_installed/" >> .gitignore
+    fi
+
+    if ! grep -q "build/" .gitignore; then
+        echo "build/" >> .gitignore
+    fi
+    
 else
     echo "Cloning locally"
     git clone https://github.com/microsoft/vcpkg.git
 fi
+
+echo "Creating directories"
+mkdir -p include
+mkdir -p src
+mkdir -p lib
 
 echo Running vcpkg bootstrap
 ./vcpkg/bootstrap-vcpkg.sh
@@ -47,9 +73,14 @@ cmake_minimum_required(VERSION 3.10)
 
 project($project_name)
 
-add_include_directories($project_name PRIVATE include)
+# Include paths
+target_include_directories($project_name PRIVATE include)
+
+# Source paths
 file(GLOB SOURCES src/*.cpp)
 add_executable(HelloWorld \${SOURCES})
+
+# Link libraries
 
 " > CMakeLists.txt
 
@@ -60,9 +91,7 @@ echo "
     \"configurePresets\": [
         {
             \"name\": \"default\",
-            \"hidden\": true,
             \"generator\": \"Unix Makefiles\",
-            \"buildRoot\": \"\${sourceDir}/build/\${presetName}\",
             \"binaryDir\": \"\${sourceDir}/build\",
             \"cacheVariables\": {
                 \"CMAKE_TOOLCHAIN_FILE\": \"\${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake\"
